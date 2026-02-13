@@ -1,0 +1,101 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+class Rider {
+  +mass_kg: float
+  +ftp_w: float
+  +hr_rest: int
+  +hr_max: int
+}
+
+class Bike {
+  +mass_kg: float
+  +cda: float
+  +crr: float
+  +drivetrain_eff: float
+}
+
+class Environment {
+  +rho: float
+  +wind_speed_mps: float
+  +wind_dir_deg: float
+}
+
+class RouteProfile {
+  +s_m: float[]
+  +grade: float[]
+  +elev_m: float[]
+  +total_distance_m(): float
+  +grade_at(s_m: float): float
+}
+
+interface ProfileGenerator {
+  +generate(): RouteProfile
+}
+class RandomHillyProfileGenerator {
+  +seed: int
+  +generate(): RouteProfile
+}
+ProfileGenerator <|.. RandomHillyProfileGenerator
+
+class ZoneDefinition {
+  +name: str
+  +if_low: float
+  +if_high: float
+  +a_up: float
+  +a_down: float
+  +softpedal_w: float
+}
+
+class RideState {
+  +t_s: float
+  +s_m: float
+  +v_mps: float
+  +grade: float
+  +power_w: float
+  +hr_bpm: float
+  +cadence_rpm: float
+}
+
+interface PowerStrategy {
+  +command_power(state: RideState): float
+}
+class ZonePowerStrategy {
+  +zone: ZoneDefinition
+  +ftp_w: float
+  +ramp_up_wps: float
+  +ramp_down_wps: float
+  +command_power(state: RideState): float
+}
+PowerStrategy <|.. ZonePowerStrategy
+ZonePowerStrategy o-- ZoneDefinition
+
+class PhysicsModel {
+  +step(state: RideState, power_w: float, dt_s: float, profile: RouteProfile): RideState
+}
+class HeartRateModel {
+  +tau_s: float
+  +drift_bpm_per_min: float
+  +update(state: RideState, power_w: float, rider: Rider, dt_s: float): float
+}
+
+class RideRecord {
+  +append(state: RideState)
+  +to_dataframe()
+}
+
+class Simulator {
+  +dt_s: float
+  +run_until_distance(target_m: float): RideRecord
+}
+
+Simulator o-- RouteProfile
+Simulator o-- PowerStrategy
+Simulator o-- PhysicsModel
+Simulator o-- HeartRateModel
+Simulator o-- Rider
+Simulator o-- Bike
+Simulator o-- Environment
+Simulator --> RideRecord
+
+@enduml
